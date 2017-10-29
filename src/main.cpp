@@ -37,12 +37,37 @@ int main()
   Tools tools;
   vector<VectorXd> estimations;
   vector<VectorXd> ground_truth;
+    // Added by me
+    string out_file_name_ = "my_out_file.txt";
+    ofstream out_file_(out_file_name_.c_str(), ofstream::out);
+    if (!out_file_.is_open()) {
+        cerr << "Cannot open output file: " << out_file_name_ << endl;
+        exit(EXIT_FAILURE);
+    }
+    // write the file headers
+    out_file_ << "time_stamp" << "\t"; //1
+    out_file_ << "px_est" << "\t";     //2
+    out_file_ << "py_est" << "\t";     //3
+    out_file_ << "vx_est" << "\t";     //4
+    out_file_ << "vy_est" << "\t";     //5
+    out_file_ << "px_meas" << "\t";    //6
+    out_file_ << "py_meas" << "\t";    //7
+    out_file_ << "px_gt" << "\t";
+    out_file_ << "py_gt" << "\t";
+    out_file_ << "vx_gt" << "\t";
+    out_file_ << "vy_gt" << "\t";
+    out_file_ << "px_rmse" << "\t";
+    out_file_ << "py_rmse" << "\t";
+    out_file_ << "vx_rmse" << "\t";
+    out_file_ << "vy_rmse" << "\n";
 
-  h.onMessage([&fusionEKF,&tools,&estimations,&ground_truth](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+    
+  h.onMessage([&fusionEKF,&tools,&estimations,&ground_truth, &out_file_](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
 
+      
     if (length && length > 2 && data[0] == '4' && data[1] == '2')
     {
 
@@ -125,7 +150,23 @@ int main()
     	  estimations.push_back(estimate);
 
     	  VectorXd RMSE = tools.CalculateRMSE(estimations, ground_truth);
-
+            // Added by me
+            out_file_ << timestamp << "\t"; // pos1 - est
+            out_file_ << p_x<< "\t"; // estimate_x - est
+            out_file_ << p_y<< "\t"; // estimate_y- est
+            out_file_ << v1<< "\t"; // estimate_vx - est
+            out_file_ << v2<< "\t"; // estimate_vy- est
+            out_file_ <<meas_package.raw_measurements_[0]<<"\t"; // px - measured
+            out_file_ <<meas_package.raw_measurements_[1]<<"\t"; // py - measured
+            out_file_ << x_gt<< "\t"; // x - ground truth
+            out_file_ << y_gt<< "\t"; // y - ground truth
+            out_file_ << vx_gt<< "\t"; // vx - ground truth
+            out_file_ << vy_gt<< "\t"; // vy - ground truth
+            out_file_ << RMSE(0)<< "\t"; // rmse_x - est
+            out_file_ << RMSE(1)<< "\t"; // rmse_y- est
+            out_file_ << RMSE(2)<< "\t"; // rmse_vx - est
+            out_file_ << RMSE(3)<< "\n"; // rmse_vy - est
+          
           json msgJson;
           msgJson["estimate_x"] = p_x;
           msgJson["estimate_y"] = p_y;
@@ -136,7 +177,8 @@ int main()
           auto msg = "42[\"estimate_marker\"," + msgJson.dump() + "]";
           // std::cout << msg << std::endl;
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
-	  
+         
+
         }
       } else {
         
@@ -146,6 +188,7 @@ int main()
     }
 
   });
+
 
   // We don't need this since we're not using HTTP but if it's removed the program
   // doesn't compile :-(
@@ -182,4 +225,9 @@ int main()
     return -1;
   }
   h.run();
+    
+    // close files
+    if (out_file_.is_open()) {
+        out_file_.close();
+    }
 }
